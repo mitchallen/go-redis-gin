@@ -9,28 +9,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mitchallen/go-redis-gin/demo"
 	"github.com/redis/go-redis/v9"
 )
-
-type Lock struct {
-	Resource string `json:"resource"`
-	UserID   string `json:"userId"`
-	Duration string `json:"duration"`
-}
-
-const NAMESPACE = "lock"
-
-func makeKey(namespace string, location string) string {
-	return fmt.Sprintf(
-		"%s:%s",
-		strings.ToLower(namespace),
-		strings.ToLower(location),
-	)
-}
 
 func main() {
 
@@ -52,7 +36,7 @@ func main() {
 		userId := c.Param("userid")
 		duration := time.Second * 5
 
-		lock := Lock{
+		lock := demo.Lock{
 			Resource: resource,
 			UserID:   userId,
 			Duration: duration.String(),
@@ -67,7 +51,7 @@ func main() {
 			return
 		}
 
-		key := makeKey(NAMESPACE, resource)
+		key := demo.MakeLockKey(resource)
 
 		err = client.Set(c, key, json, duration).Err()
 		if err != nil {

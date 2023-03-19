@@ -70,6 +70,7 @@ Test with curl:
 
 ```sh
 curl http://localhost:8080/lock/alpha/admin
+
 {"resource":"alpha","userId":"admin","duration":"5s"}
 ```
 
