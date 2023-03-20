@@ -27,14 +27,66 @@ func main() {
 	r := gin.Default()
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"message": "Hello, world!",
+			"status": "OK!",
 		})
 	})
 
-	r.GET("/lock/:resource/:userid", func(c *gin.Context) {
+	/*
+
+		curl http://localhost:8080/lock/resource/alpha
+
+	*/
+
+	r.GET("/lock/resource/:resource", func(c *gin.Context) {
 		resource := c.Param("resource")
-		userId := c.Param("userid")
-		duration := time.Second * 5
+		key := demo.MakeLockKey(resource)
+		val, err := client.Get(c, key).Result()
+		if len(val) == 0 { // or val == ""
+			// if an empty sting was retuned, the key was not found
+			fmt.Println("--- key not found ---")
+		}
+		if err != nil {
+			if err == redis.Nil {
+				// If the error was redis.Nil, the key was not found
+				fmt.Printf("--- GET returned redis.Nil, err: %v ---\n", err)
+				c.JSON(http.StatusNotFound, gin.H{"error": "resource lock for user not found"})
+				return
+			}
+			// Otherwise an unexpected error occurred
+			fmt.Printf("ERROR [Get]: %v \n", err)
+			c.JSON(http.StatusBadRequest, err.Error())
+			return
+		}
+		c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		c.Writer.WriteHeader(200)
+		bytes := []byte(val)
+		c.Writer.Write(bytes)
+	})
+
+	/*
+		curl -X POST http://localhost:8080/lock \
+		-H 'content-type: application/json' \
+		-d '{"resource": "alpha", "userId": "admin"}'
+	*/
+
+	r.POST("/lock", func(c *gin.Context) {
+
+		type LockPostBody struct {
+			Resource string `json:"resource"`
+			UserID   string `json:"userId"`
+		}
+
+		var requestBody LockPostBody
+
+		if err := c.ShouldBindJSON(&requestBody); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resource := requestBody.Resource
+		userId := requestBody.UserID
+
+		duration := time.Second * 10
 
 		lock := demo.Lock{
 			Resource: resource,

@@ -69,17 +69,27 @@ go run server.go
 Test with curl:
 
 ```sh
-curl http://localhost:8080/lock/alpha/admin
+curl -X POST http://localhost:8080/lock \
+-H 'content-type: application/json' \
+-d '{"resource": "alpha", "userId": "admin"}'
+```
+
+
+```sh
+curl http://localhost:8080/lock/resource/alpha
 
 {"resource":"alpha","userId":"admin","duration":"5s"}
+```
+
+```sh
+watch -n 1 curl http://localhost:8080/lock/resource/alpha
 ```
 
 ### Check the results in redis-cli
 
 ```sh
 % redis-cli
-127.0.0.1:6379> GET id123
-"{\"name\":\"Otto\",\"age\":45}"
+127.0.0.1:6379> GET lock:alpha
 ```
 
 ## Cleanup
